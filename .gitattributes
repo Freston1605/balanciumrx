@@ -1,3 +1,4 @@
+*.xml filter=lfs diff=lfs merge=lfs -text
 *.csv !text !filter !merge !diff
 *.xml !text !filter !merge !diff
 *.xsd !text !filter !merge !diff
