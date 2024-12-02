@@ -34,22 +34,40 @@ pubchem_numeric_df = pubchem_df.select(*numerical_cols)
 # Rename 'CIDs' to 'cid' in drug_cids_df
 drug_cids_df = drug_cids_df.withColumnRenamed("CIDs", "cid")
 
-# Perform an inner join
-joined_df = drug_cids_df.join(pubchem_numeric_df, on="cid", how="inner")
+# Perform an inner join for Drug_A (with cid_A)
+joined_df_A = drug_cids_df.join(pubchem_numeric_df, on="cid", how="inner")
+# Rename columns for Drug_A
+for col in numerical_cols:
+    joined_df_A = joined_df_A.withColumnRenamed(col, f"{col}_A")
 
-# Perform join between ddinter_df and joined_df on 'Drug_A' and 'Drug Name'
-ddinter_drugA_joined = ddinter_df.join(joined_df, ddinter_df["Drug_A"] == joined_df["Drug Name"], how="inner")
+# Rename 'cid' to 'cid_A' for Drug_A
+joined_df_A = joined_df_A.withColumnRenamed("cid", "cid_A")
 
-# Perform join between ddinter_drugA_joined and joined_df on 'Drug_B' and 'Drug Name'
-ddinter_drugA_drugB_joined = ddinter_drugA_joined.join(
-    joined_df, 
-    ddinter_drugA_joined["Drug_B"] == joined_df["Drug Name"], 
+# Perform an inner join for Drug_B (with cid_B)
+joined_df_B = drug_cids_df.join(pubchem_numeric_df, on="cid", how="inner")
+# Rename columns for Drug_B
+for col in numerical_cols:
+    joined_df_B = joined_df_B.withColumnRenamed(col, f"{col}_B")
+
+# Rename 'cid' to 'cid_B' for Drug_B
+joined_df_B = joined_df_B.withColumnRenamed("cid", "cid_B")
+
+# Perform join between ddinter_df and joined_df_A on 'Drug_A' and 'Drug Name'
+ddinter_drugA_joined = ddinter_df.join(joined_df_A, ddinter_df["Drug_A"] == joined_df_A["Drug Name"], how="inner")
+
+# Perform join between ddinter_drugA_joined and joined_df_B on 'Drug_B' and 'Drug Name'
+final_joined_df = ddinter_drugA_joined.join(
+    joined_df_B, 
+    ddinter_drugA_joined["Drug_B"] == joined_df_B["Drug Name"], 
     how="inner"
 )
 
+# Show the final result
+final_joined_df.show(5)
+
 # Save the final DataFrame as a CSV file in the 'data' folder
 output_path = "data/final_joined_data.csv"
-ddinter_drugA_drugB_joined.write.csv(output_path, header=True, mode="overwrite")
+final_joined_df.write.csv(output_path, header=True, mode="overwrite")
 
 # Stop Spark session
 spark.stop()
